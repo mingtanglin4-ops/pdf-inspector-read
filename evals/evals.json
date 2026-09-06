@@ -1,0 +1,33 @@
+{
+  "skill_name": "pdf-inspector-read",
+  "note": "Fixture PDFs are not vendored. Run scripts/fetch_fixtures.sh first.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "batch-triage",
+      "prompt": "Everything in evals/fixtures/batch is a PDF someone sent me. Before a meeting I want a quick read: which of these can be text-extracted and which are scans that need a human? For the extractable ones give me two or three sentences on what each says. Put it in a small table.",
+      "expected_output": "A per-file table classifying each of the 5 PDFs as extractable vs needs-visual-read, with short summaries only for the extractable ones. scanned_form.pdf and shinagawa_notice.pdf must be flagged as not directly extractable, with no summary invented for them.",
+      "files": [
+        "evals/fixtures/batch/"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "table-extraction",
+      "prompt": "evals/fixtures/single/price_table.pdf has a price table in it. Pull the rows out into a CSV next to the PDF called prices.csv. Keep the header.",
+      "expected_output": "A prices.csv containing the table rows with a header, derived from the PDF's table structure rather than whitespace-aligned text. Stacked price cells split into separate columns.",
+      "files": [
+        "evals/fixtures/single/price_table.pdf"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "broken-encoding-trap",
+      "prompt": "What does evals/fixtures/single/shinagawa_notice.pdf say? Mainly I want to know whether it mentions a deadline.",
+      "expected_output": "The run must recognise the text layer is broken (CID font with no ToUnicode), recover the content by another route, and report that no deadline is mentioned. It must NOT present the mojibake as content or invent a deadline.",
+      "files": [
+        "evals/fixtures/single/shinagawa_notice.pdf"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+pytest>=7.0
+reportlab>=4.0      # builds the sample PDFs used by the tests
+pypdfium2>=4.0      # renderer under test
+pdf-inspector>=1.0  # the library this skill routes around
