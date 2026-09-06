@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+evals/fixtures/
+artifacts/
+smoke.pdf
+*.png
