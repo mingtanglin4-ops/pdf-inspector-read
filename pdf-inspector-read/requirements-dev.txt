@@ -1,6 +1,0 @@
-pytest>=7.0
-reportlab>=4.0      # builds the sample PDFs used by the tests
-pypdfium2>=4.0      # renderer under test
-pillow>=9.0         # pypdfium2 renders through PIL; not a transitive guarantee
-tiktoken>=0.5       # bench/token_economics.py; it degrades without it, but not accurately
-pdf-inspector>=1.0  # the library this skill routes around
