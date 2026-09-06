@@ -38,15 +38,27 @@ def _watch():
     handler = _Capture()
     root = logging.getLogger(); root.addHandler(handler)
     prev_level = root.level; root.setLevel(logging.WARNING)
+    pyout, pyerr = io.StringIO(), io.StringIO()
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
+        # Two layers, because a library can write either way and only one of
+        # them reaches fd 1/2: native code (MuPDF, Tesseract) writes the fd
+        # directly, while `print(file=sys.stderr)` goes through the Python
+        # object -- which some host (pytest, a notebook, a logging framework)
+        # may already have pointed somewhere else. Capture both or miss one.
         with capture_fds() as fds:
-            yield box
+            with contextlib.redirect_stdout(pyout), contextlib.redirect_stderr(pyerr):
+                yield box
     box["signals"] += [f"warn:{w.category.__name__}:{str(w.message)[:200]}" for w in caught]
     box["signals"] += handler.records
-    for chan in ("stdout", "stderr"):
-        if fds[chan].strip():
-            box["signals"].append(f"{chan}:{fds[chan].strip()[:200]}")
+    seen = set()
+    for chan, text in (("stdout", fds["stdout"] + pyout.getvalue()),
+                       ("stderr", fds["stderr"] + pyerr.getvalue())):
+        if text.strip():
+            sig = f"{chan}:{text.strip()[:200]}"
+            if sig not in seen:
+                seen.add(sig)
+                box["signals"].append(sig)
     root.removeHandler(handler); root.setLevel(prev_level)
 
 

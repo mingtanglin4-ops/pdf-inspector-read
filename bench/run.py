@@ -15,7 +15,8 @@ import json, platform, sys, time
 from dataclasses import asdict
 from pathlib import Path
 
-from .parsers import parse_all, REGISTRY
+from . import parsers  # module, not names: the registry must stay swappable
+                       # (subset runs, injected fakes in tests, week-3 additions)
 from .fixtures import PAYLOAD, VISIBLE
 
 SCHEMA = "ingest-audit/1"
@@ -26,10 +27,16 @@ def leak_cells(control_dir: Path) -> list[dict]:
     for payload_pdf in sorted(control_dir.glob("*.payload.pdf")):
         technique = payload_pdf.name.split(".")[0]
         clean_pdf = payload_pdf.with_name(f"{technique}.clean.pdf")
-        pay = {r.parser: r for r in parse_all(payload_pdf)}
-        cln = {r.parser: r for r in parse_all(clean_pdf)}
-        for name in REGISTRY:
+        pay = {r.parser: r for r in parsers.parse_all(payload_pdf)}
+        cln = {r.parser: r for r in parsers.parse_all(clean_pdf)}
+        for name in parsers.REGISTRY:
             p, c = pay[name], cln[name]
+            # A message that also appears on the clean twin is a CONFIGURATION
+            # BANNER, not a behaviour signal: it reports what the library has
+            # installed, not what it did to this document. Only messages unique
+            # to the payload run count as "it told the caller".
+            banner_signals = [s for s in p.signals if s in set(c.signals)]
+            behaviour_signals = [s for s in p.signals if s not in set(c.signals)]
             occurred = PAYLOAD.split(".")[0] in p.text
             cells.append({
                 "parser": name,
@@ -40,9 +47,10 @@ def leak_cells(control_dir: Path) -> list[dict]:
                 "occurred": occurred,
                 "occurred_evidence": "payload span present in extracted text"
                                      if occurred else "payload span absent",
-                "signalled": bool(p.signals),
-                "signal_channels": sorted({s.split(":")[0] for s in p.signals}),
-                "signal_excerpt": (p.signals[0][:160] if p.signals else None),
+                "signalled": bool(behaviour_signals),
+                "signal_channels": sorted({s.split(":")[0] for s in behaviour_signals}),
+                "signal_excerpt": (behaviour_signals[0][:160] if behaviour_signals else None),
+                "config_banner": sorted({s.split(":")[0] for s in banner_signals}) or None,
                 "false_positive": PAYLOAD.split(".")[0] in c.text,
                 "control_text_intact": VISIBLE.split(".")[0] in p.text,
                 "cost": {"wall_s": round(p.wall_s, 4),
@@ -89,7 +97,7 @@ def build(control_dir: Path) -> dict:
         "environment": {
             "python": sys.version.split()[0],
             "platform": platform.platform(),
-            "parsers": {n: v for n, (v, _) in REGISTRY.items()},
+            "parsers": {n: v for n, (v, _) in parsers.REGISTRY.items()},
         },
         "behaviours": discriminability(cells),
         "cells": cells,
