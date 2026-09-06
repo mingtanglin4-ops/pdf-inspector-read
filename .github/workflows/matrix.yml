@@ -1,0 +1,31 @@
+name: behaviour-matrix
+
+# The published matrix must come from ONE pinned environment, not from whoever
+# ran it last on their laptop. Linux + poppler is that environment; Windows and
+# macOS are for editing. Every run uploads matrix.json so version-to-version
+# behaviour flips are visible in the diff.
+on:
+  push:
+    paths: ["bench/**", ".github/workflows/matrix.yml"]
+  schedule:
+    - cron: "0 3 1 * *"        # monthly: catch parser releases changing behaviour
+  workflow_dispatch:
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils tesseract-ocr
+      - run: python -m pip install -r bench/requirements.txt
+      - run: mkdir -p results
+      - run: python bench/fixtures.py bench/corpus/control
+      - run: python -m bench.run | tee results/summary.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: behaviour-matrix
+          path: |
+            results/matrix.json
+            results/summary.txt
