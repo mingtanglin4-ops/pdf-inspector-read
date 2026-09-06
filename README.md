@@ -20,6 +20,17 @@ failures easily mistaken for "the document is empty".
 trustworthy?"* in 1–50 ms. This skill turns that answer into a routing decision, plus the
 things that turned out to matter once the routing was actually tested.
 
+## Related: what parsers do without telling you
+
+[`docs/silent-behaviours.md`](docs/silent-behaviours.md) measures three things
+PDF parsers do silently — escalating to OCR (9x slower, same return type),
+dropping rotated content with no missing-content signal, and passing through
+text no reader can see. That last one matters if a model reads your extracted
+text: white-on-white and render-mode-3 strings carrying
+`ignore all previous instructions` reach four of five parsers' output unmarked.
+[`docs/detect_hidden.py`](docs/detect_hidden.py) catches them by reading the
+drawing instructions, and exits non-zero so it can gate a pipeline.
+
 ## What the routing is worth, measured
 
 `bench/token_economics.py` builds documents at a chosen text density, extracts them, renders
